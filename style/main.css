@@ -2,7 +2,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: #faf8ef;
+  background: #fff8ef;
   color: #776e65;
   font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
   font-size: 18px; }
@@ -14,6 +14,22 @@ body {
   content: "";
   display: block;
   clear: both; }
+  
+.wowMuchQuote {
+  text-align: center;
+  font-size: 26px;
+  margin-bottom: 1em;
+}
+
+.wowMuchQuote:after {
+  content: " „";
+  font-size:36px;
+}
+
+.wowMuchQuote:before {
+  content: "“ ";
+  font-size:36px;
+}
 
 h1.title {
   font-size: 80px;

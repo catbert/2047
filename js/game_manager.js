@@ -31,6 +31,18 @@ GameManager.prototype.isGameTerminated = function () {
   return this.over || (this.won && !this.keepPlaying);
 };
 
+// Casts a dice to select new game title
+GameManager.prototype.getRandomTitle = function () {
+  var map = {
+    0: "So unfair!",
+    1: "True perfection has to be imperfect",
+    2: "Screw you guys I'm going home",
+	3: "wat"
+  };
+
+  return map[Math.floor(Math.random() * 4)];
+};
+
 // Set up the game
 GameManager.prototype.setup = function () {
   var previousState = this.storageManager.getGameState();
@@ -43,13 +55,17 @@ GameManager.prototype.setup = function () {
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+	this.goal        = previousState.goal;
+	this.gameTitle   = previousState.gameTitle;
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
     this.over        = false;
     this.won         = false;
     this.keepPlaying = false;
-
+	this.goal        = Math.round(Math.random() * 2047);
+	this.gameTitle   = this.getRandomTitle();
+	
     // Add the initial tiles
     this.addStartTiles();
   }
@@ -93,7 +109,9 @@ GameManager.prototype.actuate = function () {
     over:       this.over,
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
-    terminated: this.isGameTerminated()
+    terminated: this.isGameTerminated(),
+	goal:       this.goal,
+	gameTitle:  this.gameTitle,
   });
 
 };
@@ -105,7 +123,9 @@ GameManager.prototype.serialize = function () {
     score:       this.score,
     over:        this.over,
     won:         this.won,
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+	goal:        this.goal,
+	gameTitle:   this.gameTitle
   };
 };
 
@@ -128,15 +148,17 @@ GameManager.prototype.moveTile = function (tile, cell) {
 
 // Calculates whether two items are close enough to be merged
 GameManager.prototype.closeEnough = function (x, y) {
-	var maxAllowancePercent = 0.2;
+	var maxAllowanceRatio = 0.5;
 	
 	var difference = x - y;
-	var maxAllowance = Math.max(Math.abs(x), Math.abs(y)) * maxAllowancePercent;
+	var maxAllowance = Math.max(Math.abs(x), Math.abs(y)) * maxAllowanceRatio;
 	if (maxAllowance < 1.1) {
 		maxAllowance = 1.1;
 	}
 	
-	return Math.abs(difference) < maxAllowance;
+	var winForCheaters = (x + y) === self.goal;
+	
+	return winForCheaters || Math.abs(difference) < maxAllowance;
 };
 
 // Move tiles on the grid in the specified direction
@@ -179,8 +201,8 @@ GameManager.prototype.move = function (direction) {
           // Update the score
           self.score += merged.value;
 
-          // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
+          // The mighty GOAL tile
+          if (merged.value === self.goal) self.won = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }
