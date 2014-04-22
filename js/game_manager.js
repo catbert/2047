@@ -28,11 +28,19 @@ GameManager.prototype.keepPlaying = function () {
 
 // Return true if the game is lost, or has won and the user hasn't kept playing
 GameManager.prototype.isGameTerminated = function () {
-  if (this.over || (this.won && !this.keepPlaying)) {
-    return true;
-  } else {
-    return false;
-  }
+  return this.over || (this.won && !this.keepPlaying);
+};
+
+// Casts a dice to select new game title
+GameManager.prototype.getRandomTitle = function () {
+  var map = {
+    0: "So unfair!",
+    1: "True perfection has to be imperfect",
+    2: "Screw you guys I'm going home",
+	3: "wat"
+  };
+
+  return map[Math.floor(Math.random() * 4)];
 };
 
 // Set up the game
@@ -47,13 +55,17 @@ GameManager.prototype.setup = function () {
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+	this.goal        = previousState.goal;
+	this.gameTitle   = previousState.gameTitle;
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
     this.over        = false;
     this.won         = false;
     this.keepPlaying = false;
-
+	this.goal        = Math.round(Math.random() * 2047);
+	this.gameTitle   = this.getRandomTitle();
+	
     // Add the initial tiles
     this.addStartTiles();
   }
@@ -72,7 +84,7 @@ GameManager.prototype.addStartTiles = function () {
 // Adds a tile in a random position
 GameManager.prototype.addRandomTile = function () {
   if (this.grid.cellsAvailable()) {
-    var value = Math.random() < 0.9 ? 2 : 4;
+    var value = Math.round(Math.random() * 10); // Math.random() < 0.9 ? 2 : 4;
     var tile = new Tile(this.grid.randomAvailableCell(), value);
 
     this.grid.insertTile(tile);
@@ -97,7 +109,9 @@ GameManager.prototype.actuate = function () {
     over:       this.over,
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
-    terminated: this.isGameTerminated()
+    terminated: this.isGameTerminated(),
+	goal:       this.goal,
+	gameTitle:  this.gameTitle,
   });
 
 };
@@ -109,7 +123,9 @@ GameManager.prototype.serialize = function () {
     score:       this.score,
     over:        this.over,
     won:         this.won,
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+	goal:        this.goal,
+	gameTitle:   this.gameTitle
   };
 };
 
@@ -128,6 +144,21 @@ GameManager.prototype.moveTile = function (tile, cell) {
   this.grid.cells[tile.x][tile.y] = null;
   this.grid.cells[cell.x][cell.y] = tile;
   tile.updatePosition(cell);
+};
+
+// Calculates whether two items are close enough to be merged
+GameManager.prototype.closeEnough = function (x, y) {
+	var maxAllowanceRatio = 0.5;
+	
+	var difference = x - y;
+	var maxAllowance = Math.max(Math.abs(x), Math.abs(y)) * maxAllowanceRatio;
+	if (maxAllowance < 1.1) {
+		maxAllowance = 1.1;
+	}
+	
+	var winForCheaters = (x + y) === self.goal;
+	
+	return winForCheaters || Math.abs(difference) < maxAllowance;
 };
 
 // Move tiles on the grid in the specified direction
@@ -157,8 +188,8 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
+        if (next && self.closeEnough(next.value, tile.value) && !next.mergedFrom) {
+          var merged = new Tile(positions.next, tile.value + next.value);
           merged.mergedFrom = [tile, next];
 
           self.grid.insertTile(merged);
@@ -170,8 +201,8 @@ GameManager.prototype.move = function (direction) {
           // Update the score
           self.score += merged.value;
 
-          // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
+          // The mighty GOAL tile
+          if (merged.value === self.goal) self.won = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }

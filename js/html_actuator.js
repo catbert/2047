@@ -10,7 +10,12 @@ function HTMLActuator() {
 
 HTMLActuator.prototype.actuate = function (grid, metadata) {
   var self = this;
-
+  document.title = metadata.goal;
+  document.querySelector("#numberInHeader").innerHTML = metadata.goal;
+  document.querySelector("#numberInDescription").innerHTML = metadata.goal;
+  document.querySelector("#numberInDescription").innerHTML = metadata.goal;
+  document.querySelector(".wowMuchQuote").innerHTML = metadata.gameTitle;
+  
   window.requestAnimationFrame(function () {
     self.clearContainer(self.tileContainer);
 
